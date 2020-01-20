@@ -62,10 +62,21 @@ def main():
     arg_parser = argparse.ArgumentParser(
         description="Generate Zig standard library representation of LLVM target feature/CPU information.", 
         allow_abbrev=False)
-    arg_parser.add_argument("llvm_source_dir", help="path to LLVM top-level source directory")
 
-    arg_parser.add_argument("-tblgen-exe", nargs="?", default="llvm-tblgen-9", help="(default: llvm-tblgen-9) override tablegen executable path")
-    arg_parser.add_argument("-output-dir", nargs="?", default="out", help="(default: out) override output directory")
+    arg_parser.add_argument(
+        "llvm_source_dir", 
+        help="path to LLVM top-level source directory")
+
+    arg_parser.add_argument(
+        "-tblgen-exe", 
+        nargs="?", 
+        default="llvm-tblgen-9", 
+        help="(default: llvm-tblgen-9) override tablegen executable path")
+    arg_parser.add_argument(
+        "-output-dir", 
+        nargs="?", 
+        default="out", 
+        help="(default: out) override output directory")
 
     args = arg_parser.parse_args()
 
