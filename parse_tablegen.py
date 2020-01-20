@@ -60,10 +60,8 @@ def gather_dependencies(deps, features, blacklist):
 
     dep_def_names = []
 
-    for i in range(0, len(features)):
-        if is_bit_set(deps, i):
-            feature = features_by_id[i]
-
+    for feature in features:
+        if is_bit_set(deps, feature.id):
             if feature.def_name in blacklist:
                 # Explore its dependencies. Even though this is blacklisted, its deps might not be.
                 blacklisted_deps = gather_dependencies(feature.dependencies, features, blacklist)
@@ -141,6 +139,11 @@ def parse_info_lines(feature_def_lines, feature_info_lines, cpu_info_lines):
         r"\s*(?P<b2>[0-9a-fA-FxX]+)ULL,"
         r".*")
 
+    # Some features, for whatever reason, cannot be provided on the command line.
+    # They do not have an entry in the feature info section.
+    # So here, we collect the features that do show up here.
+    real_features = []
+
     for info_line in feature_info_lines:
         # Removing braces will make these easier to parse.
         info_line = info_line.replace("{", "")
@@ -162,7 +165,9 @@ def parse_info_lines(feature_def_lines, feature_info_lines, cpu_info_lines):
         b1 = int(m.group("b1"), 16)
         b2 = int(m.group("b2"), 16)
 
-        feature.dependencies = [b0, b1, b2]        
+        feature.dependencies = [b0, b1, b2]
+
+        real_features.append(feature)
 
     # "apple-latest", 0x0ULL, 0x0ULL, 0x10ULL, , &CycloneModel ,
     cpu_info_re = re.compile(
@@ -191,7 +196,7 @@ def parse_info_lines(feature_def_lines, feature_info_lines, cpu_info_lines):
 
         cpus.append(Cpu(llvm_name, [b0, b1, b2]))
 
-    return (features, cpus)
+    return (real_features, cpus)
 
 
 def parse_tablegen_file(tablegen_file, blacklist):

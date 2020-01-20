@@ -28,12 +28,16 @@ import subprocess
 import tempfile
 
 from parse_tablegen import parse_tablegen_file
+from gen_zig import generate_zig_code
 
 # Suffix to use for tablegen output files.
 TABLEGEN_FILE_SUFFIX = "_tablegen.cpp"
 
-#Suffix to use for definition JSON output files.
+# Suffix to use for definition JSON output files.
 DEF_FILE_SUFFIX = ".json"
+
+# Suffix to use for Zig output files.
+ZIG_FILE_SUFFIX = ".zig"
 
 # Represents an LLVM Target.
 class Target:
@@ -44,6 +48,7 @@ class Target:
 
         self.tablegen_file_name = zig_target_name + TABLEGEN_FILE_SUFFIX
         self.defs_file_name = zig_target_name + DEF_FILE_SUFFIX
+        self.zig_file_name = zig_target_name + ZIG_FILE_SUFFIX
 
 
 # Defines what targets are processed.
@@ -148,6 +153,7 @@ def main():
 
         tablegen_file_path = os.path.join(working_dir, target.tablegen_file_name)
         defs_file_path = os.path.join(working_dir, target.defs_file_name)
+        zig_file_path = os.path.join(output_dir, target.zig_file_name)
 
         if not tablegen_cache_enabled or not os.path.isfile(tablegen_file_path):
             with open(tablegen_file_path, "w") as tablegen_out:
@@ -170,6 +176,10 @@ def main():
             if args.output_details_json:
                 with open(os.path.join(output_dir, target.defs_file_name), "w") as defs_out:
                     json.dump(target_details, defs_out, indent=4)
+
+            with open(zig_file_path, "w") as zig_out:
+                print("  > Generating Zig source...")
+                generate_zig_code(zig_out, target.output_name, target_details)
 
 
 if __name__ == "__main__":
