@@ -65,9 +65,12 @@ def gather_dependencies(deps, features, blacklist):
             if feature.def_name in blacklist:
                 # Explore its dependencies. Even though this is blacklisted, its deps might not be.
                 blacklisted_deps = gather_dependencies(feature.dependencies, features, blacklist)
-                dep_def_names.extend(blacklisted_deps)
+                for dep in blacklisted_deps:
+                    if dep not in dep_def_names:
+                        dep_def_names.append(dep)
             else:
-                dep_def_names.append(feature.def_name)
+                if feature.def_name not in dep_def_names:
+                    dep_def_names.append(feature.def_name)
 
     return dep_def_names
 
