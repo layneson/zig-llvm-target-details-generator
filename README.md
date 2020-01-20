@@ -17,4 +17,4 @@ feature families, processor families, sub-architectures, etc.
 - [x] Parse LLVM tablegen output.
 - [x] Resolve feature dependencies with blacklist support.
 - [x] Generate JSON files describing all details for each target arch.
-- [ ] Generate Zig code describing all details for each target arch.
+- [x] Generate Zig code describing all details for each target arch.
