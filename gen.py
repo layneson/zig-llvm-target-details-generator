@@ -85,8 +85,8 @@ def main():
 
     arg_parser.add_argument(
         "-tblgen-exe", 
-        default="llvm-tblgen-9", 
-        help="(default: llvm-tblgen-9) override tablegen executable path")
+        default="llvm-tblgen", 
+        help="(default: llvm-tblgen) override tablegen executable path")
     arg_parser.add_argument(
         "-output-dir", 
         default="out", 
