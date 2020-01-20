@@ -80,17 +80,14 @@ def main():
 
     arg_parser.add_argument(
         "-tblgen-exe", 
-        nargs="?", 
         default="llvm-tblgen-9", 
         help="(default: llvm-tblgen-9) override tablegen executable path")
     arg_parser.add_argument(
         "-output-dir", 
-        nargs="?", 
         default="out", 
         help="(default: out) override output directory")
     arg_parser.add_argument(
         "-work-dir", 
-        nargs="?", 
         default=None, 
         help="(default: <temporary dir>) override directory where intermediate results are stored")
     arg_parser.add_argument(
@@ -103,7 +100,6 @@ def main():
         help="(default: false) output JSON representation of target details for all arches")
     arg_parser.add_argument(
         "-blacklist",
-        nargs="?",
         default=None,
         help="(default: <none>) specify a file which contains <arch_name>.<feature_def_name> feature blacklist lines")
 
