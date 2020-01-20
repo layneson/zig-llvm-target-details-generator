@@ -9,6 +9,9 @@ This project transforms information about LLVM-supported target features and CPU
 ## Usage
 Run `python3 gen.py <path-to-llvm-src-dir>`. Use `-h` to see a list of optional arguments.
 
+By default, the final Zig source files will be placed in a directory called `out`.
+The `-output-dir <dir>` option can be used to specify a custom output directory.
+
 There is a basic blacklist file that is included in this repo. Add `-blacklist blacklist.txt` to the above command to use it.
 The `blacklist.txt` file contains any "features" whose definition names do not start with `Feature`. This generally includes
 feature families, processor families, sub-architectures, etc.
