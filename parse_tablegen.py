@@ -66,7 +66,7 @@ def gather_dependencies(deps, features, blacklist):
 
             if feature.def_name in blacklist:
                 # Explore its dependencies. Even though this is blacklisted, its deps might not be.
-                blacklisted_deps = gather_dependencies(feature.deps, features, blacklist)
+                blacklisted_deps = gather_dependencies(feature.dependencies, features, blacklist)
                 dep_def_names.extend(blacklisted_deps)
             else:
                 dep_def_names.append(feature.def_name)
@@ -122,6 +122,9 @@ def parse_info_lines(feature_def_lines, feature_info_lines, cpu_info_lines):
 
         def_name = m.group("def_name")
         def_value = int(m.group("def_value"))
+
+        if def_name == "NumSubtargetFeatures":
+            continue
 
         # The enum members are always 0-n, in-order.
         feature = Feature(def_value, def_name)
@@ -191,7 +194,7 @@ def parse_info_lines(feature_def_lines, feature_info_lines, cpu_info_lines):
     return (features, cpus)
 
 
-def parse_tablegen_file(tablegen_file):
+def parse_tablegen_file(tablegen_file, blacklist):
     # Scan through file, line by line.
     # Attack this in three sections:
     #   1. Feature definition.
@@ -263,5 +266,4 @@ def parse_tablegen_file(tablegen_file):
 
     features, cpus = parse_info_lines(feature_def_lines, feature_info_lines, cpu_info_lines)
 
-    blacklist = []
     return resolve_details(features, cpus, blacklist)

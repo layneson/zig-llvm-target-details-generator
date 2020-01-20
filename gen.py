@@ -101,6 +101,11 @@ def main():
         "-output-details-json",
         action="store_true",
         help="(default: false) output JSON representation of target details for all arches")
+    arg_parser.add_argument(
+        "-blacklist",
+        nargs="?",
+        default=None,
+        help="(default: <none>) specify a file which contains <arch_name>.<feature_def_name> feature blacklist lines")
 
     args = arg_parser.parse_args()
 
@@ -124,6 +129,24 @@ def main():
     # Only enable caching if a work dir is specified and caching is requested.
     tablegen_cache_enabled = args.work_dir is not None and args.cache_tablegen
 
+    blacklists = {target.target_dir: [] for target in TARGETS}
+    if args.blacklist is not None: 
+        with open(args.blacklist, "r") as blacklist_file:
+            for line in blacklist_file.readlines():
+                line = line.strip()
+                if len(line) == 0:
+                    continue
+
+                if line[0] == '#':
+                    continue
+
+                split = line.split(".")
+                if len(split) != 2:
+                    print("[!] Invalid syntax in blacklist file!")
+                    sys.exit(1)
+                
+                blacklists[split[0]].append(split[1])   
+
     for target in TARGETS:
         print("= {}".format(target.output_name))
 
@@ -143,7 +166,7 @@ def main():
 
         with open(tablegen_file_path, "r") as tablegen_in:
             print("  > Parsing tablegen...")
-            target_details = parse_tablegen_file(tablegen_in)
+            target_details = parse_tablegen_file(tablegen_in, blacklists[target.target_dir])
 
             with open(defs_file_path, "w") as defs_out:
                 json.dump(target_details, defs_out, indent=4)
@@ -152,7 +175,6 @@ def main():
                 with open(os.path.join(output_dir, target.defs_file_name), "w") as defs_out:
                     json.dump(target_details, defs_out, indent=4)
 
-        
 
 if __name__ == "__main__":
     main()
