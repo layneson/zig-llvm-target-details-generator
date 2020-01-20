@@ -21,6 +21,7 @@ THE SOFTWARE.
 """
 
 import argparse
+import json
 import sys
 import os
 import subprocess
@@ -31,6 +32,9 @@ from parse_tablegen import parse_tablegen_file
 # Suffix to use for tablegen output files.
 TABLEGEN_FILE_SUFFIX = "_tablegen.cpp"
 
+#Suffix to use for definition JSON output files.
+DEF_FILE_SUFFIX = ".json"
+
 # Represents an LLVM Target.
 class Target:
     def __init__(self, llvm_target_name, llvm_td_name, zig_target_name):
@@ -39,6 +43,7 @@ class Target:
         self.output_name = zig_target_name
 
         self.tablegen_file_name = zig_target_name + TABLEGEN_FILE_SUFFIX
+        self.defs_file_name = zig_target_name + DEF_FILE_SUFFIX
 
 
 # Defines what targets are processed.
@@ -92,6 +97,10 @@ def main():
         "-cache-tablegen",
         action="store_true",
         help="(default: false) cache tablegen results, or use cached results if they exist. Can only be used in combination with -work-dir")
+    arg_parser.add_argument(
+        "-output-details-json",
+        action="store_true",
+        help="(default: false) output JSON representation of target details for all arches")
 
     args = arg_parser.parse_args()
 
@@ -119,6 +128,7 @@ def main():
         print("= {}".format(target.output_name))
 
         tablegen_file_path = os.path.join(working_dir, target.tablegen_file_name)
+        defs_file_path = os.path.join(working_dir, target.defs_file_name)
 
         if not tablegen_cache_enabled or not os.path.isfile(tablegen_file_path):
             with open(tablegen_file_path, "w") as tablegen_out:
@@ -134,7 +144,14 @@ def main():
         with open(tablegen_file_path, "r") as tablegen_in:
             print("  > Parsing tablegen...")
             target_details = parse_tablegen_file(tablegen_in)
-            print(target_details)
+
+            with open(defs_file_path, "w") as defs_out:
+                json.dump(target_details, defs_out, indent=4)
+
+            if args.output_details_json:
+                with open(os.path.join(output_dir, target.defs_file_name), "w") as defs_out:
+                    json.dump(target_details, defs_out, indent=4)
+
         
 
 if __name__ == "__main__":
