@@ -24,6 +24,12 @@ import argparse
 import sys
 import os
 import subprocess
+import tempfile
+
+from parse_tablegen import parse_tablegen_file
+
+# Suffix to use for tablegen output files.
+TABLEGEN_FILE_SUFFIX = "_tablegen.cpp"
 
 # Represents an LLVM Target.
 class Target:
@@ -31,6 +37,8 @@ class Target:
         self.target_dir = llvm_target_name
         self.td_name = llvm_td_name
         self.output_name = zig_target_name
+
+        self.tablegen_file_name = zig_target_name + TABLEGEN_FILE_SUFFIX
 
 
 # Defines what targets are processed.
@@ -55,8 +63,6 @@ TARGETS = [
     # Target("XCore", "XCore.td", "xcore"), # Excluded since it does not define any features.
 ]
 
-TABLEGEN_FILE_SUFFIX = "_tablegen.cpp"
-
 
 def main():
     arg_parser = argparse.ArgumentParser(
@@ -77,6 +83,15 @@ def main():
         nargs="?", 
         default="out", 
         help="(default: out) override output directory")
+    arg_parser.add_argument(
+        "-work-dir", 
+        nargs="?", 
+        default=None, 
+        help="(default: <temporary dir>) override directory where intermediate results are stored")
+    arg_parser.add_argument(
+        "-cache-tablegen",
+        action="store_true",
+        help="(default: false) cache tablegen results, or use cached results if they exist. Can only be used in combination with -work-dir")
 
     args = arg_parser.parse_args()
 
@@ -88,25 +103,39 @@ def main():
         os.mkdir(output_dir)
 
     tblgen_path = args.tblgen_exe
-    print(tblgen_path)
 
     if not os.path.isdir(output_dir):
         print("[!] Output dir must exist!", file=sys.stderr)
         sys.exit(1)
 
+    working_dir = args.work_dir or tempfile.mkdtemp(prefix="zig_gen_llvm_target_details")
+    if not os.path.exists(working_dir):
+        os.mkdir(working_dir)
+
+    # Only enable caching if a work dir is specified and caching is requested.
+    tablegen_cache_enabled = args.work_dir is not None and args.cache_tablegen
+
     # First, run LLVM tablegen for all chosen targets.
     for target in TARGETS:
         print("= {}".format(target.output_name))
 
-        with open(os.path.join(output_dir, target.output_name + TABLEGEN_FILE_SUFFIX), "w") as tablegen_out:
-            target_dir = os.path.join(llvm_target_dir, target.target_dir)
+        tablegen_file_path = os.path.join(working_dir, target.tablegen_file_name)
 
-            print("  > Running tablegen...")
-            subprocess.run(
-                [tblgen_path, target.td_name, "-I", "../../../include", "--gen-subtarget"],
-                cwd=target_dir,
-                stdout=tablegen_out
-            ).check_returncode()
+        if not tablegen_cache_enabled or not os.path.isfile(tablegen_file_path):
+            with open(tablegen_file_path, "w") as tablegen_out:
+                target_dir = os.path.join(llvm_target_dir, target.target_dir)
+
+                print("  > Running tablegen...")
+                subprocess.run(
+                    [tblgen_path, target.td_name, "-I", "../../../include", "--gen-subtarget"],
+                    cwd=target_dir,
+                    stdout=tablegen_out
+                ).check_returncode()
+
+        with open(tablegen_file_path, "r") as tablegen_in:
+            print("  > Parsing tablegen...")
+            target_details = parse_tablegen_file(tablegen_in)
+            print(target_details)
         
 
 if __name__ == "__main__":
