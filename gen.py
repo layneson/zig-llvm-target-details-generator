@@ -115,7 +115,6 @@ def main():
     # Only enable caching if a work dir is specified and caching is requested.
     tablegen_cache_enabled = args.work_dir is not None and args.cache_tablegen
 
-    # First, run LLVM tablegen for all chosen targets.
     for target in TARGETS:
         print("= {}".format(target.output_name))
 
