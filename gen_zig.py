@@ -22,21 +22,24 @@ THE SOFTWARE.
 
 import re
 
-zig_ident_re = re.compile("[a-zA-Z_][a-zA-Z0-9_]*")
+zig_ident_re = re.compile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 int_re = re.compile("[iu][0-9]+")
+zig_kws = ["break", "goto", "else"]
 
-def convert_name(name):
-    name = name.replace("-", "_")
-    name = name.replace(".", "_")
-
-    if int_re.match(name) is not None:
-        name = '_' + name
-
+def zig_ident_escape(name):
     if zig_ident_re.match(name) is None:
+        name = '@"' + name + '"'
+    elif name in zig_kws:
         name = '@"' + name + '"'
 
     return name
 
+def llvm_to_zig_name(name):
+    name = name.replace("-", "_")
+    name = name.replace(".", "_")
+    if int_re.match(name) is not None:
+        name = '_' + name
+    return name
 
 def generate_zig_code(out_file, arch_name, target_details):
     out_file.write('const std = @import("../std.zig");\n')
@@ -53,7 +56,7 @@ def generate_zig_code(out_file, arch_name, target_details):
     cpus.sort(key=lambda c: c["llvm_name"])
 
     for feature in features:
-        tag_name = convert_name(feature["llvm_name"])
+        tag_name = zig_ident_escape(llvm_to_zig_name(feature["llvm_name"]))
 
         out_file.write(f"    {tag_name},\n")
 
@@ -65,12 +68,13 @@ def generate_zig_code(out_file, arch_name, target_details):
 
     out_file.write("pub const all_features = blk: {\n")
     out_file.write("    const len = @typeInfo(Feature).Enum.fields.len;\n")
-    out_file.write("    std.debug.assert(len <= @typeInfo(Cpu.Feature.Set).Int.bits);\n")
+    out_file.write("    std.debug.assert(len <= Cpu.Feature.Set.bit_count);\n")
     out_file.write("    var result: [len]Cpu.Feature = undefined;\n");
 
     for feature in features:
         llvm_name = feature["llvm_name"]
-        tag_name = convert_name(llvm_name)
+        zig_name = llvm_to_zig_name(llvm_name)
+        tag_name = zig_ident_escape(zig_name)
         description = feature["description"]
         deps = feature["dependencies"]
 
@@ -85,14 +89,14 @@ def generate_zig_code(out_file, arch_name, target_details):
 
             for dep in deps:
                 dep_feature = features_by_def_name[dep]
-                dep_tag_name = convert_name(dep_feature["llvm_name"])
+                dep_tag_name = zig_ident_escape(llvm_to_zig_name(dep_feature["llvm_name"]))
 
                 indent = " " * 12
                 out_file.write(f"{indent}.{dep_tag_name},\n")
 
             out_file.write("        }),\n")
         else:
-            out_file.write("        .dependencies = 0,\n")
+            out_file.write("        .dependencies = featureSet(&[_]Feature{}),\n")
 
         out_file.write("    };\n")
 
@@ -104,11 +108,12 @@ def generate_zig_code(out_file, arch_name, target_details):
 
     for cpu in cpus:
         llvm_name = cpu["llvm_name"]
-        name = convert_name(llvm_name)
+        zig_name = llvm_to_zig_name(llvm_name)
+        ident_name = zig_ident_escape(zig_name)
         deps = cpu["dependencies"]
 
-        out_file.write(f"    pub const {name} = Cpu{{\n")
-        out_file.write(f'        .name = "{name}",\n')
+        out_file.write(f"    pub const {ident_name} = Cpu{{\n")
+        out_file.write(f'        .name = "{zig_name}",\n')
         out_file.write(f'        .llvm_name = "{llvm_name}",\n')
 
         if len(deps) > 0: 
@@ -116,14 +121,14 @@ def generate_zig_code(out_file, arch_name, target_details):
 
             for dep in deps:
                 dep_feature = features_by_def_name[dep]
-                dep_tag_name = convert_name(dep_feature["llvm_name"])
+                dep_tag_name = zig_ident_escape(llvm_to_zig_name(dep_feature["llvm_name"]))
 
                 indent = " " * 12
                 out_file.write(f"{indent}.{dep_tag_name},\n")
 
             out_file.write("        }),\n")
         else:
-            out_file.write("        .features = 0,\n")
+            out_file.write("        .features = featureSet(&[_]Feature{}),\n")
 
         out_file.write("    };\n")
 
@@ -137,7 +142,7 @@ def generate_zig_code(out_file, arch_name, target_details):
     out_file.write("pub const all_cpus = &[_]*const Cpu{\n")
 
     for cpu in cpus:
-        name = convert_name(cpu["llvm_name"])
+        name = zig_ident_escape(llvm_to_zig_name(cpu["llvm_name"]))
 
         out_file.write(f"    &cpu.{name},\n")
 
