@@ -23,9 +23,14 @@ THE SOFTWARE.
 import re
 
 zig_ident_re = re.compile("[a-zA-Z_][a-zA-Z0-9_]*")
+int_re = re.compile("[iu][0-9]+")
 
 def convert_name(name):
     name = name.replace("-", "_")
+    name = name.replace(".", "_")
+
+    if int_re.match(name) is not None:
+        name = '_' + name
 
     if zig_ident_re.match(name) is None:
         name = '@"' + name + '"'
